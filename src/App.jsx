@@ -1,19 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import LoginPage from './pages/LoginPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import ProjectFormPage from './pages/ProjectFormPage.jsx'
 import ProjectDetailPage from './pages/ProjectDetailPage.jsx'
-import { authClient, clearSession, loadSession, persistSession, SESSION_STORAGE_KEY } from './utils/security.js'
-
-const mapStoredSession = (stored) => ({
-  isAuthenticated: !!stored?.token,
-  isGuest: stored?.isGuest ?? false,
-  profile: stored?.profile ?? null,
-  token: stored?.token ?? null,
-  issuedAt: stored?.issuedAt ?? null,
-  expiresAt: stored?.expiresAt ?? null,
-})
+import { createSession, clearSession, loadSession, SESSION_STORAGE_KEY } from './utils/security.js'
 
 const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (!isAuthenticated) {
@@ -39,73 +30,68 @@ function App() {
     [],
   )
 
-  const refreshSession = useCallback(async () => {
+  const [session, setSession] = useState(() => {
     const stored = loadSession()
-    if (!stored?.token) {
-      clearSession()
-      setSession(mapStoredSession(null))
-      return
+    return {
+      isAuthenticated: stored.isAuthenticated ?? false,
+      isGuest: stored.isGuest ?? false,
+      profile: stored.profile ?? null,
+      token: stored.token ?? null,
+      issuedAt: stored.issuedAt ?? null,
+      expiresAt: stored.expiresAt ?? null,
     }
-    try {
-      const verified = await authClient.fetchSession(stored.token)
-      if (verified) {
-        persistSession(verified)
-        setSession(mapStoredSession(verified))
-      } else {
-        clearSession()
-        setSession(mapStoredSession(null))
-      }
-    } catch (error) {
-      console.error('Gagal memuat sesi terbaru', error)
-    }
-  }, [])
-
-  const [session, setSession] = useState(() => mapStoredSession(loadSession()))
-
-  useEffect(() => {
-    refreshSession()
-  }, [refreshSession])
+  })
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
     const handleStorage = (event) => {
       if (event.key === SESSION_STORAGE_KEY) {
-        refreshSession()
+        const stored = loadSession()
+        setSession({
+          isAuthenticated: stored.isAuthenticated ?? false,
+          isGuest: stored.isGuest ?? false,
+          profile: stored.profile ?? null,
+          token: stored.token ?? null,
+          issuedAt: stored.issuedAt ?? null,
+          expiresAt: stored.expiresAt ?? null,
+        })
       }
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [refreshSession])
+  }, [])
 
-  const authContext = useMemo(() => {
-    const applySession = (payload) => {
-      if (payload) {
-        persistSession(payload)
-        setSession(mapStoredSession(payload))
-      } else {
-        refreshSession()
-      }
-    }
-
-    return {
-      login: applySession,
-      guest: applySession,
-      logout: async () => {
-        try {
-          if (session.token) {
-            await authClient.logout(session.token)
-          }
-        } catch (error) {
-          console.error('Gagal logout', error)
-        } finally {
-          clearSession()
-          setSession(mapStoredSession(null))
-        }
+  const authContext = useMemo(
+    () => ({
+      login: (profile) => {
+        const nextSession = createSession({ profile, isGuest: false })
+        setSession({
+          ...nextSession,
+          isAuthenticated: true,
+        })
       },
-      refreshSession,
+      guest: () => {
+        const nextSession = createSession({ profile: guestProfile, isGuest: true })
+        setSession({
+          ...nextSession,
+          isAuthenticated: true,
+        })
+      },
+      logout: () => {
+        clearSession()
+        setSession({
+          isAuthenticated: false,
+          isGuest: false,
+          profile: null,
+          token: null,
+          issuedAt: null,
+          expiresAt: null,
+        })
+      },
       ...session,
-    }
-  }, [refreshSession, session])
+    }),
+    [guestProfile, session],
+  )
 
   return (
     <BrowserRouter>
@@ -114,8 +100,8 @@ function App() {
           path="/"
           element={
             <LoginPage
-              onLogin={authContext.login}
-              onGuest={authContext.guest}
+              onLogin={(profile) => authContext.login(profile)}
+              onGuest={() => authContext.guest()}
               isAuthenticated={authContext.isAuthenticated}
             />
           }
@@ -128,7 +114,6 @@ function App() {
                 onLogout={() => authContext.logout()}
                 profile={authContext.profile ?? guestProfile}
                 isGuest={authContext.isGuest}
-                authToken={authContext.token}
               />
             </ProtectedRoute>
           }
@@ -140,7 +125,7 @@ function App() {
               <ProjectFormPage
                 mode="create"
                 isGuest={authContext.isGuest}
-                authToken={authContext.token}
+                profile={authContext.profile ?? guestProfile}
               />
             </ProtectedRoute>
           }

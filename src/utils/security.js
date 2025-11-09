@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
+const ACCOUNTS_KEY = 'kk_accounts'
+export const PROJECTS_STORAGE_KEY = 'kk_projects'
 export const RESET_STORAGE_KEY = 'kk_reset'
 export const SESSION_STORAGE_KEY = 'kk_session'
+const SESSION_TTL_MINUTES = 120
 
 const isBrowser = typeof window !== 'undefined'
 
@@ -15,47 +17,51 @@ const getStorage = () => {
   }
 }
 
-const handleResponse = async (response) => {
-  if (response.status === 204) {
-    return null
+export const hashPassword = (password) => bcrypt.hashSync(password, 10)
+
+export const verifyPassword = (password, hash) => bcrypt.compareSync(password, hash)
+
+export const generateSessionToken = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
   }
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    const error = new Error(data?.message ?? 'Terjadi kesalahan pada server.')
-    error.status = response.status
-    throw error
-  }
-  return data
+  return `token_${Date.now()}_${Math.random().toString(36).slice(2)}`
 }
 
-const request = async (path, options = {}) => {
-  const defaults = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  }
-  const config = {
-    ...defaults,
-    ...options,
-    headers: {
-      ...defaults.headers,
-      ...options.headers,
-    },
+export const persistAccounts = (accounts) => {
+  const storage = getStorage()
+  if (!storage) return
+  storage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts))
+}
+
+export const loadAccounts = (fallback = []) => {
+  const storage = getStorage()
+  if (!storage) return [...fallback]
+  const raw = storage.getItem(ACCOUNTS_KEY)
+  if (!raw) {
+    storage.setItem(ACCOUNTS_KEY, JSON.stringify(fallback))
+    return [...fallback]
   }
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, config)
-    return handleResponse(response)
-  } catch (error) {
-    if (error instanceof TypeError) {
-      const friendly = new Error(
-        'Gagal terhubung ke server API. Pastikan backend berjalan dan origin diperbolehkan.',
-      )
-      friendly.cause = error
-      throw friendly
-    }
-    throw error
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : [...fallback]
+  } catch {
+    return [...fallback]
   }
+}
+
+export const createSession = ({ profile, isGuest }) => {
+  const issuedAt = Date.now()
+  const expiresAt = issuedAt + SESSION_TTL_MINUTES * 60 * 1000
+  const session = {
+    token: generateSessionToken(),
+    profile,
+    isGuest,
+    issuedAt,
+    expiresAt,
+  }
+  persistSession(session)
+  return session
 }
 
 export const persistSession = (session) => {
@@ -89,6 +95,15 @@ export const loadSession = () => {
   }
   try {
     const parsed = JSON.parse(raw)
+    if (parsed?.expiresAt && parsed.expiresAt < Date.now()) {
+      storage.removeItem(SESSION_STORAGE_KEY)
+      return {
+        isAuthenticated: false,
+        isGuest: false,
+        profile: null,
+        token: null,
+      }
+    }
     return {
       ...parsed,
       isAuthenticated: !!parsed?.token,
@@ -109,56 +124,6 @@ export const clearSession = () => {
   if (!storage) return
   storage.removeItem(SESSION_STORAGE_KEY)
 }
-
-export const authClient = {
-  async login(identifier, password) {
-    return request('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ identifier, password }),
-    })
-  },
-  async register(payload) {
-    return request('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-  },
-  async guest() {
-    return request('/api/auth/guest', {
-      method: 'POST',
-    })
-  },
-  async logout(token) {
-    const headers = {}
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
-    return request('/api/auth/logout', {
-      method: 'POST',
-      headers,
-    }).catch(() => null)
-  },
-  async fetchSession(token) {
-    if (!token) return null
-    try {
-      return await request('/api/auth/session', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-    } catch (error) {
-      if (error.status === 401) {
-        return null
-      }
-      throw error
-    }
-  },
-}
-
-export const hashPassword = (password) => bcrypt.hashSync(password, 10)
-
-export const verifyPassword = (password, hash) => bcrypt.compareSync(password, hash)
 
 export const createPasswordResetRequest = (email, accounts = []) => {
   const account = accounts.find((item) => item.email.toLowerCase() === email.toLowerCase())
@@ -209,4 +174,3 @@ export const clearPasswordResetRequest = () => {
   if (!storage) return
   storage.removeItem(RESET_STORAGE_KEY)
 }
-

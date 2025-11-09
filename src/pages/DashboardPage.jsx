@@ -15,6 +15,7 @@ import {
   projects as defaultProjects,
   years,
 } from '../data/mockData.js'
+import { loadProjects } from '../utils/storage.js'
 
 const Topbar = ({
   searchTerm,
@@ -282,9 +283,7 @@ const ProjectGrid = ({ items }) => {
   )
 }
 
-const DASHBOARD_API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
-
-const DashboardPage = ({ onLogout, profile, isGuest, authToken }) => {
+const DashboardPage = ({ onLogout, profile, isGuest }) => {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState({
@@ -292,64 +291,13 @@ const DashboardPage = ({ onLogout, profile, isGuest, authToken }) => {
     year: '',
     category: '',
   })
-  const [projectItems, setProjectItems] = useState(defaultProjects)
+  const [projectItems, setProjectItems] = useState(() => loadProjects(defaultProjects))
   const [notificationList, setNotificationList] = useState(defaultNotifications)
   const [notificationOpen, setNotificationOpen] = useState(false)
 
   useEffect(() => {
-    const controller = new AbortController()
-    const loadProjects = async () => {
-      try {
-        const response = await fetch(`${DASHBOARD_API_BASE}/api/projects`, {
-          signal: controller.signal,
-        })
-        if (!response.ok) {
-          throw new Error('Gagal memuat proyek dari server')
-        }
-        const data = await response.json()
-        if (Array.isArray(data?.items)) {
-          setProjectItems(data.items)
-        }
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error(error)
-        }
-      }
-    }
-    loadProjects()
-    return () => controller.abort()
+    setProjectItems(loadProjects(defaultProjects))
   }, [])
-
-  useEffect(() => {
-    if (isGuest || !authToken) {
-      setNotificationList(defaultNotifications)
-      return undefined
-    }
-    const controller = new AbortController()
-    const loadNotifications = async () => {
-      try {
-        const response = await fetch(`${DASHBOARD_API_BASE}/api/notifications`, {
-          signal: controller.signal,
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        })
-        if (!response.ok) {
-          throw new Error('Gagal memuat notifikasi')
-        }
-        const data = await response.json()
-        if (Array.isArray(data?.items)) {
-          setNotificationList(data.items)
-        }
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error(error)
-        }
-      }
-    }
-    loadNotifications()
-    return () => controller.abort()
-  }, [authToken, isGuest])
 
   const handleToggleNotifications = () => {
     setNotificationOpen((prevOpen) => {

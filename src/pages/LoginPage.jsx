@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PiEye, PiEyeSlash } from 'react-icons/pi'
-import { departments } from '../data/mockData.js'
-import { authClient, persistSession } from '../utils/security.js'
+import { defaultUsers, departments } from '../data/mockData.js'
+import {
+  hashPassword,
+  verifyPassword,
+  loadAccounts,
+  persistAccounts,
+} from '../utils/security.js'
 
 const ALLOWED_DOMAIN = 'kampus.ac.id'
+
+const normalizeNim = (value) => value.replace(/\s+/g, '').toLowerCase()
 
 const MODES = {
   LOGIN: 'login',
@@ -15,6 +22,7 @@ const MODES = {
 const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
   const navigate = useNavigate()
   const [mode, setMode] = useState(MODES.LOGIN)
+  const [accountList, setAccountList] = useState(() => loadAccounts(defaultUsers))
   const [loginIdentifier, setLoginIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -37,11 +45,15 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
     }
   }, [isAuthenticated, navigate])
 
-useEffect(() => {
-  setFeedback(null)
-}, [mode])
+  useEffect(() => {
+    persistAccounts(accountList)
+  }, [accountList])
 
-  const handleLoginSubmit = async (event) => {
+  useEffect(() => {
+    setFeedback(null)
+  }, [mode])
+
+  const handleLoginSubmit = (event) => {
     event.preventDefault()
     const rawIdentifier = loginIdentifier.trim()
     if (!rawIdentifier || !password) {
@@ -51,56 +63,91 @@ useEffect(() => {
       })
       return
     }
+
     try {
       setLoginLoading(true)
-      const session = await authClient.login(rawIdentifier, password)
-      persistSession(session)
+      const sanitizedIdentifier = rawIdentifier.toLowerCase()
+      let registeredUser
+      if (sanitizedIdentifier.includes('@')) {
+        if (!sanitizedIdentifier.endsWith(`@${ALLOWED_DOMAIN}`)) {
+          setFeedback({
+            type: 'error',
+            message: `Email harus menggunakan domain @${ALLOWED_DOMAIN}.`,
+          })
+          return
+        }
+        registeredUser = accountList.find(
+          (user) => user.email?.toLowerCase() === sanitizedIdentifier,
+        )
+      } else {
+        const nimNormalized = normalizeNim(rawIdentifier)
+        registeredUser = accountList.find((user) => {
+          const candidate = normalizeNim(user.nim || user.profile?.nim || '')
+          return candidate === nimNormalized
+        })
+      }
+
+      if (!registeredUser) {
+        setFeedback({
+          type: 'error',
+          message: 'Akun belum terdaftar. Gunakan email kampus atau daftar terlebih dahulu.',
+        })
+        return
+      }
+
+      const isHashed = /^(\$2[aby]?\$|\$2y\$)/.test(registeredUser.password)
+      const passwordMatch = isHashed
+        ? verifyPassword(password, registeredUser.password)
+        : registeredUser.password === password
+
+      if (!passwordMatch) {
+        setFeedback({ type: 'error', message: 'Kata sandi tidak valid. Coba lagi.' })
+        return
+      }
+
+      if (!isHashed) {
+        const upgradedUser = {
+          ...registeredUser,
+          password: hashPassword(password),
+        }
+        setAccountList((prev) =>
+          prev.map((user) => (user.id === upgradedUser.id ? upgradedUser : user)),
+        )
+      }
+
       setFeedback({
         type: 'success',
         message: 'Berhasil masuk. Mengarahkan ke dashboard...',
       })
-      onLogin?.(session)
+      onLogin?.(registeredUser.profile)
       navigate('/dashboard')
-    } catch (error) {
-      setFeedback({
-        type: 'error',
-        message: error.message ?? 'Gagal masuk. Coba lagi.',
-      })
     } finally {
       setLoginLoading(false)
     }
   }
 
-  const handleGuestLogin = async () => {
-    try {
-      setGuestLoading(true)
-      const session = await authClient.guest()
-      persistSession(session)
-      setFeedback({
-        type: 'success',
-        message: 'Berhasil masuk sebagai pengunjung.',
-      })
-      onGuest?.(session)
-      navigate('/dashboard')
-    } catch (error) {
-      setFeedback({
-        type: 'error',
-        message: error.message ?? 'Gagal masuk sebagai pengunjung.',
-      })
-    } finally {
-      setGuestLoading(false)
-    }
+  const handleGuestLogin = () => {
+    setGuestLoading(true)
+    setFeedback({
+      type: 'success',
+      message: 'Berhasil masuk sebagai pengunjung.',
+    })
+    onGuest?.()
+    navigate('/dashboard')
+    setGuestLoading(false)
   }
 
-  const handleRegisterSubmit = async (event) => {
+  const handleRegisterSubmit = (event) => {
     event.preventDefault()
     const sanitizedEmail = registerData.email.trim().toLowerCase()
     const trimmedNim = registerData.nim.trim()
+    const normalizedNim = normalizeNim(trimmedNim)
+
     if (!registerData.name || !trimmedNim || !sanitizedEmail || !registerData.password) {
       setFeedback({ type: 'error', message: 'Lengkapi seluruh data registrasi.' })
       return
     }
-    if (!/^[0-9]{6,}$/.test(trimmedNim.replace(/\s+/g, ''))) {
+    if (!/^[0-9]{6,}$/.test(normalizedNim)) {
       setFeedback({ type: 'error', message: 'NIM harus berupa angka minimal 6 digit.' })
       return
     }
@@ -117,26 +164,63 @@ useEffect(() => {
       return
     }
 
-    try {
-      setRegisterLoading(true)
-      const session = await authClient.register({
-        name: registerData.name.trim(),
-        nim: trimmedNim,
-        department: registerData.department,
-        email: sanitizedEmail,
-        password: registerData.password,
-      })
-      persistSession(session)
-      setFeedback({
-        type: 'success',
-        message: 'Registrasi berhasil! Mengarahkan ke dashboard...',
-      })
-      onLogin?.(session)
-      navigate('/dashboard')
-    } catch (error) {
+    const isEmailTaken = accountList.some(
+      (user) => user.email.toLowerCase() === sanitizedEmail,
+    )
+    if (isEmailTaken) {
+      setFeedback({ type: 'error', message: 'Email sudah terdaftar. Silakan login.' })
+      return
+    }
+    const isNimTaken = accountList.some((user) => {
+      const candidate = normalizeNim(user.nim || user.profile?.nim || '')
+      return candidate === normalizedNim
+    })
+    if (isNimTaken) {
       setFeedback({
         type: 'error',
-        message: error.message ?? 'Registrasi gagal. Coba lagi.',
+        message: 'NIM sudah terdaftar. Gunakan NIM lain atau login.',
+      })
+      return
+    }
+
+    try {
+      setRegisterLoading(true)
+      const generatedId = `u-${Date.now()}`
+      const hashedPassword = hashPassword(registerData.password)
+      const newUser = {
+        id: generatedId,
+        email: sanitizedEmail,
+        nim: normalizedNim,
+        password: hashedPassword,
+        profile: {
+          id: generatedId,
+          name: registerData.name.trim(),
+          nim: trimmedNim,
+          department: registerData.department,
+          avatarColor: '#2F80ED',
+          role: 'Mahasiswa',
+          verified: false,
+          totalProjects: 0,
+          totalEndorsements: 0,
+          popularProject: 'Belum ada proyek',
+        },
+      }
+
+      setAccountList((prev) => [...prev, newUser])
+      setFeedback({
+        type: 'success',
+        message: 'Registrasi berhasil! Silakan masuk menggunakan email/NIM dan kata sandi baru.',
+      })
+      setMode(MODES.LOGIN)
+      setLoginIdentifier(trimmedNim)
+      setPassword('')
+      setRegisterData({
+        name: '',
+        nim: '',
+        department: departments[0],
+        email: '',
+        password: '',
+        confirmPassword: '',
       })
     } finally {
       setRegisterLoading(false)

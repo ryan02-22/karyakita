@@ -25,19 +25,7 @@ KaryaKita adalah aplikasi web responsif untuk memamerkan portofolio proyek mahas
 
 ## Menjalankan
 
-### Urutan Singkat
-
-```bash
-# dari root proyek
-npm run setup        # sekali saja: install + migrasi + seed backend
-npm run dev:all      # jalankan backend & frontend bersamaan
-```
-
-Aplikasi frontend tersedia di `http://localhost:5173` dan API backend di `http://localhost:4000`.
-
-Jika salah satu proses ditutup, fitur seperti login atau mode pengunjung akan gagal (error `failed to fetch`). Pastikan kedua terminal tetap aktif selama pengembangan.
-
-### 1. Frontend (Vite)
+### Menjalankan Frontend (Vite)
 
 ```bash
 npm install
@@ -46,48 +34,15 @@ npm run dev
 
 Frontend tersedia di `http://localhost:5173/`.
 
-### 2. Backend (Express + SQLite)
-
-```bash
-cd server
-npm install
-npm run migrate   # membuat tabel SQLite
-npm run seed      # menambahkan data awal (opsional, tapi disarankan)
-npm run dev       # menjalankan server di http://localhost:4000
-```
-
-Jika ingin menjalankan backend di latar belakang saat pengembangan, gunakan:
-
-```bash
-npm run dev &
-```
-
-Variable lingkungan opsional:
-
-| Key | Default | Keterangan |
-| --- | --- | --- |
-| `PORT` | `4000` | Port server Express |
-| `SQLITE_PATH` | `server/data/app.db` | Lokasi file database |
-| `ALLOWED_ORIGIN` | `http://localhost:5173` | Origin yang diizinkan untuk CORS |
-
-Frontend membaca basis URL API dari `VITE_API_BASE_URL` (default `http://localhost:4000`). Sesuaikan di `.env` jika perlu:
-
-```bash
-VITE_API_BASE_URL=http://localhost:4000
-```
-
-### 3. Menjalankan Frontend + Backend Sekaligus
-
-```bash
-npm run dev:all    # backend + frontend aktif bersamaan
-```
-
 ## Build Produksi
 
 ```bash
 npm run build
 npm run preview
 ```
+
+> **Catatan:** Seluruh data (akun, proyek baru, setelan) kini tersimpan di `localStorage` per
+> perangkat/peramban. Jika ingin memulai ulang, cukup hapus data penyimpanan lokal browser.
 
 ## Catatan Pengujian Manual
 

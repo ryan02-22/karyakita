@@ -9,7 +9,8 @@ import {
   PiUploadSimple,
   PiWarningCircle,
 } from 'react-icons/pi'
-import { categories, departments, tags } from '../data/mockData.js'
+import { categories, departments, tags, projects as defaultProjects } from '../data/mockData.js'
+import { loadProjects, saveProjects } from '../utils/storage.js'
 
 const formatLocalizedDate = (value) => {
   if (!value) return ''
@@ -25,9 +26,8 @@ const formatLocalizedDate = (value) => {
 const MAX_FILES = 5
 const MAX_FILE_SIZE = 20 * 1024 * 1024
 const PROJECT_STATUSES = ['Perencanaan', 'Sedang Berjalan', 'Selesai']
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
-const ProjectFormPage = ({ mode = 'create', isGuest = false, authToken }) => {
+const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     title: '',
@@ -190,34 +190,33 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, authToken }) => {
       return
     }
 
-    if (!authToken) {
-      showStatus(
-        'Sesi autentikasi tidak ditemukan. Silakan login ulang sebelum mempublikasikan.',
-        'error',
-      )
-      return
-    }
-
     try {
       setSubmitting(true)
-      const response = await fetch(`${API_BASE_URL}/api/projects`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
+      const existingProjects = loadProjects(defaultProjects)
+      const newProject = {
+        id: `p-${Date.now()}`,
+        title: trimmedTitle,
+        summary: trimmedDescription,
+        department: formData.department,
+        category: formData.category,
+        status: formData.status,
+        completionDate: formData.completionDate || null,
+        year: normalizedYear ?? new Date().getFullYear(),
+        tags: formData.tags,
+        thumbnail: '#2F80ED',
+        endorsements: 0,
+        demoLink: formData.demoLink || '',
+        owner: {
+          name: profile?.name ?? 'Mahasiswa',
+          verified: !!profile?.verified,
+          role: profile?.role ?? 'Mahasiswa',
         },
-        body: JSON.stringify(submissionPayload),
-      })
-      const result = await response.json().catch(() => null)
-      if (!response.ok) {
-        const message =
-          result?.message ?? 'Publikasi gagal. Silakan cek data dan coba kembali.'
-        throw new Error(message)
       }
+      saveProjects([...existingProjects, newProject])
       showStatus('Proyek berhasil dipublikasikan! Mengarahkan ke Dashboard...', 'success')
       setSubmissionPreview((prev) => ({
         ...prev,
-        submittedProject: result,
+        submittedProject: newProject,
         submittedAt: new Date().toISOString(),
       }))
       window.setTimeout(() => navigate('/dashboard'), 800)

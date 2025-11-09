@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   PiArrowLeft,
@@ -7,7 +7,8 @@ import {
   PiHeartStraight,
   PiShareNetwork,
 } from 'react-icons/pi'
-import { projects } from '../data/mockData.js'
+import { projects as defaultProjects } from '../data/mockData.js'
+import { loadProjects } from '../utils/storage.js'
 
 const sampleComments = [
   {
@@ -31,10 +32,16 @@ const sampleComments = [
 const ProjectDetailPage = ({ isGuest }) => {
   const { projectId } = useParams()
   const navigate = useNavigate()
-  const project = useMemo(
-    () => projects.find((item) => item.id === projectId),
-    [projectId],
+  const [projectCollection, setProjectCollection] = useState(() => loadProjects(defaultProjects))
+  const [project, setProject] = useState(() =>
+    projectCollection.find((item) => item.id === projectId),
   )
+
+  useEffect(() => {
+    const list = loadProjects(defaultProjects)
+    setProjectCollection(list)
+    setProject(list.find((item) => item.id === projectId))
+  }, [projectId])
 
   if (!project) {
     return (
@@ -193,8 +200,8 @@ const ProjectDetailPage = ({ isGuest }) => {
               <li>
                 <span>Mahasiswa</span>
                 <span>
-                  {project.owner.name}
-                  {project.owner.verified ? <span className="verified-badge">✔</span> : null}
+                  {project.owner?.name ?? 'Mahasiswa'}
+                  {project.owner?.verified ? <span className="verified-badge">✔</span> : null}
                 </span>
               </li>
               <li>
@@ -203,7 +210,7 @@ const ProjectDetailPage = ({ isGuest }) => {
               </li>
               <li>
                 <span>Tahun</span>
-                <span>{project.year}</span>
+                <span>{project.year ?? '-'}</span>
               </li>
               <li>
                 <span>Status</span>
@@ -211,7 +218,7 @@ const ProjectDetailPage = ({ isGuest }) => {
               </li>
             </ul>
             <div className="tag-group">
-              {project.tags.map((tag) => (
+              {(project.tags ?? []).map((tag) => (
                 <span key={tag} className="tag-chip">
                   #{tag}
                 </span>
@@ -222,7 +229,7 @@ const ProjectDetailPage = ({ isGuest }) => {
           <section className="detail-card">
             <h3>Proyek Terkait</h3>
             <ul className="related-list">
-              {projects
+              {projectCollection
                 .filter((item) => item.id !== project.id)
                 .slice(0, 3)
                 .map((item) => (
