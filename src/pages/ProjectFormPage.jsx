@@ -9,8 +9,19 @@ import {
   PiUploadSimple,
   PiWarningCircle,
 } from 'react-icons/pi'
-import { categories, departments, tags, projects as defaultProjects } from '../data/mockData.js'
-import { loadProjects, saveProjects } from '../utils/storage.js'
+import {
+  categories,
+  departments,
+  tags,
+  projects as defaultProjects,
+} from '../data/mockData.js'
+import {
+  loadDraftProject,
+  loadProjects,
+  saveDraftProject,
+  saveProjects,
+  clearDraftProject,
+} from '../utils/storage.js'
 
 const formatLocalizedDate = (value) => {
   if (!value) return ''
@@ -26,6 +37,9 @@ const formatLocalizedDate = (value) => {
 const MAX_FILES = 5
 const MAX_FILE_SIZE = 20 * 1024 * 1024
 const PROJECT_STATUSES = ['Perencanaan', 'Sedang Berjalan', 'Selesai']
+
+const DRAFT_INFO =
+  'Draft tersimpan di perangkat ini. Lampiran tidak ikut tersimpan demi keamanan.'
 
 const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
   const navigate = useNavigate()
@@ -49,6 +63,17 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
   })
   const [statusFeedback, setStatusFeedback] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const draft = loadDraftProject()
+    if (draft) {
+      setFormData((prev) => ({
+        ...prev,
+        ...draft,
+      }))
+      showStatus(`${DRAFT_INFO} Anda dapat melanjutkan dari data sebelumnya.`, 'info')
+    }
+  }, [])
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -170,7 +195,19 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
     })
 
     if (!publish) {
-      showStatus('Draft tersimpan. Lanjutkan kapan saja dari Dashboard.', 'success')
+      saveDraftProject({
+        title: trimmedTitle,
+        description: trimmedDescription,
+        tags: formData.tags,
+        category: formData.category,
+        department: formData.department,
+        status: formData.status,
+        completionDate: formData.completionDate,
+        year: formData.year,
+        demoLink: formData.demoLink,
+        savedAt: new Date().toISOString(),
+      })
+      showStatus(DRAFT_INFO, 'success')
       return
     }
 
@@ -213,6 +250,7 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
         },
       }
       saveProjects([...existingProjects, newProject])
+      clearDraftProject()
       showStatus('Proyek berhasil dipublikasikan! Mengarahkan ke Dashboard...', 'success')
       setSubmissionPreview((prev) => ({
         ...prev,

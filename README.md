@@ -8,13 +8,11 @@ KaryaKita adalah aplikasi web responsif untuk memamerkan portofolio proyek mahas
 
 ## Fitur Utama (Prototype)
 
-- Autentikasi nyata via Express + SQLite: registrasi akun kampus, login memakai email `@kampus.ac.id` **atau NIM**, serta sesi bertahan lintas restart server.
-- Mode pengunjung tetap tersedia, namun aksi sensitif (tambah proyek) dibatasi untuk akun kampus.
-- Dashboard menampilkan statistik ringkas, filter jurusan/tahun/kategori, serta grid proyek yang kini ditarik dari API backend (dengan fallback data mock).
-- Notifikasi topbar memuat data dari backend saat pengguna kampus login.
-- Form Tambah/Edit Proyek termasuk unggah gambar (mock), unggah dokumen, multi-select tag, live preview, sinkronisasi tahun dari tanggal, dan status pesan publikasi.
-- Halaman Detail Proyek dengan gallery slider, metadata lengkap, komentar contoh, dan aksi endorse/share.
-- Data mock pada `src/data/mockData.js` tetap tersedia sebagai fallback/seed untuk database.
+- Login menggunakan email kampus `@kampus.ac.id` **atau NIM**, dengan mode pengunjung untuk akses cepat tanpa registrasi.
+- Semua data akun, proyek, dan notifikasi disimpan aman di `localStorage` masing-masing perangkat (hash kata sandi menggunakan `bcryptjs`).
+- Dashboard menampilkan statistik ringkas, filter jurusan/tahun/kategori, serta grid proyek yang diperbarui otomatis setelah publikasi.
+- Form Tambah/Edit Proyek mendukung unggah gambar mock, lampiran dokumen (PDF/ZIP), multi-select tag, live preview, dan integrasi tanggal → tahun secara otomatis.
+- Halaman Detail Proyek berisi slider preview, metadata lengkap, tautan demo/dokumen, proyek terkait, serta aksi endorse/share dengan pembatasan untuk pengunjung.
 
 ## Struktur Proyek
 
@@ -23,16 +21,22 @@ KaryaKita adalah aplikasi web responsif untuk memamerkan portofolio proyek mahas
 - `src/index.css` → Desain sistem global (warna, layout, responsif).
 - `src/App.jsx` → Routing dengan proteksi sederhana.
 
-## Menjalankan
+## Cara Menjalankan dan Menggunakan
 
-### Menjalankan Frontend (Vite)
+1. Pastikan Node.js terpasang.
+2. Jalankan perintah berikut di folder proyek:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Frontend tersedia di `http://localhost:5173/`.
+3. Buka `http://localhost:5173/`.
+4. Pilih tab **Daftar** untuk membuat akun baru (email kampus atau NIM). Jika hanya ingin menelusuri, klik **Masuk sebagai Pengunjung**.
+5. Setelah login dengan akun kampus:
+   - Gunakan tombol **+ Tambah Proyek** di dashboard untuk menambahkan karya baru.
+   - Isi form, unggah gambar/dokumen, dan publikasikan → proyek langsung muncul di grid.
+   - Notifikasi dan statistik diperbarui otomatis pada perangkat yang sama.
 
 ## Build Produksi
 
@@ -46,17 +50,14 @@ npm run preview
 
 ## Catatan Pengujian Manual
 
-- `npm run build` memastikan bundling tanpa error.
-- Jalankan backend (`npm run dev` di folder `server`) sebelum menguji login/registrasi.
-- Uji alur: registrasi akun baru, login memakai email & NIM, mode pengunjung, logout.
-- Verifikasi Dashboard memuat proyek/notification dari backend dan badge notifikasi berubah saat dibuka.
-- Validasi form tambah proyek: unggah gambar/dokumen (mock), multi-select tag, auto-sync tanggal → tahun, tombol Draft/Publikasikan.
-- Responsif: cek tampilan mobile (≤768px) dan desktop.
+- `npm run build` memastikan bundling produksi berjalan tanpa error.
+- Uji alur utama: registrasi akun, login memakai email/NIM, mode pengunjung, logout.
+- Tambahkan proyek baru, periksa apakah muncul di dashboard dan halaman detail, serta apakah notifikasi berubah status saat dibuka.
+- Uji responsivitas di perangkat mobile (≤768px) dan desktop.
 
 ## Langkah Selanjutnya (Opsional)
 
-- Migrasi backend ke arsitektur terstruktur (mis. REST modular atau GraphQL) serta dukungan refresh token/JWT.
-- Ganti SQLite lokal dengan database terkelola (PostgreSQL/MySQL) + storage objek (S3/MinIO) untuk unggahan riil.
-- Implementasi unggah file riil & notifikasi waktu nyata (WebSocket/FCM).
+- Integrasi backend tersendiri bila ingin sinkronisasi lintas perangkat.
+- Implementasi unggah file riil & notifikasi waktu nyata.
 - Automasi pengujian (unit dengan Vitest/Jest, e2e dengan Playwright).
 - Integrasi SSO kampus, rate limiting, audit trail, dan logging terpusat.

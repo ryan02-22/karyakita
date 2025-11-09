@@ -8,7 +8,7 @@ import {
   PiShareNetwork,
 } from 'react-icons/pi'
 import { projects as defaultProjects } from '../data/mockData.js'
-import { loadProjects } from '../utils/storage.js'
+import { loadProjects, PROJECTS_UPDATED_EVENT } from '../utils/storage.js'
 
 const sampleComments = [
   {
@@ -38,9 +38,17 @@ const ProjectDetailPage = ({ isGuest }) => {
   )
 
   useEffect(() => {
-    const list = loadProjects(defaultProjects)
-    setProjectCollection(list)
-    setProject(list.find((item) => item.id === projectId))
+    const refresh = () => {
+      const list = loadProjects(defaultProjects)
+      setProjectCollection(list)
+      setProject(list.find((item) => item.id === projectId))
+    }
+    refresh()
+    if (typeof window !== 'undefined') {
+      window.addEventListener(PROJECTS_UPDATED_EVENT, refresh)
+      return () => window.removeEventListener(PROJECTS_UPDATED_EVENT, refresh)
+    }
+    return undefined
   }, [projectId])
 
   if (!project) {

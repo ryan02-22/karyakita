@@ -15,7 +15,7 @@ import {
   projects as defaultProjects,
   years,
 } from '../data/mockData.js'
-import { loadProjects } from '../utils/storage.js'
+import { loadProjects, PROJECTS_UPDATED_EVENT } from '../utils/storage.js'
 
 const Topbar = ({
   searchTerm,
@@ -296,7 +296,13 @@ const DashboardPage = ({ onLogout, profile, isGuest }) => {
   const [notificationOpen, setNotificationOpen] = useState(false)
 
   useEffect(() => {
-    setProjectItems(loadProjects(defaultProjects))
+    const refresh = () => setProjectItems(loadProjects(defaultProjects))
+    refresh()
+    if (typeof window !== 'undefined') {
+      window.addEventListener(PROJECTS_UPDATED_EVENT, refresh)
+      return () => window.removeEventListener(PROJECTS_UPDATED_EVENT, refresh)
+    }
+    return undefined
   }, [])
 
   const handleToggleNotifications = () => {
