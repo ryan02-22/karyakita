@@ -43,8 +43,19 @@ const request = async (path, options = {}) => {
       ...options.headers,
     },
   }
-  const response = await fetch(`${API_BASE_URL}${path}`, config)
-  return handleResponse(response)
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, config)
+    return handleResponse(response)
+  } catch (error) {
+    if (error instanceof TypeError) {
+      const friendly = new Error(
+        'Gagal terhubung ke server API. Pastikan backend berjalan dan origin diperbolehkan.',
+      )
+      friendly.cause = error
+      throw friendly
+    }
+    throw error
+  }
 }
 
 export const persistSession = (session) => {
