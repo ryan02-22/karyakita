@@ -34,6 +34,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'Mahasiswa',
   })
   const [loginLoading, setLoginLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
@@ -148,7 +149,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
       return
     }
     if (!/^[0-9]{6,}$/.test(normalizedNim)) {
-      setFeedback({ type: 'error', message: 'NIM harus berupa angka minimal 6 digit.' })
+      setFeedback({ type: 'error', message: 'NIM/NIP harus berupa angka minimal 6 digit.' })
       return
     }
     if (!sanitizedEmail.endsWith(`@${ALLOWED_DOMAIN}`)) {
@@ -178,7 +179,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
     if (isNimTaken) {
       setFeedback({
         type: 'error',
-        message: 'NIM sudah terdaftar. Gunakan NIM lain atau login.',
+        message: 'NIM/NIP sudah terdaftar. Gunakan identitas lain atau login.',
       })
       return
     }
@@ -187,6 +188,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
       setRegisterLoading(true)
       const generatedId = `u-${Date.now()}`
       const hashedPassword = hashPassword(registerData.password)
+      const selectedRole = registerData.role === 'Dosen' ? 'Dosen' : 'Mahasiswa'
       const newUser = {
         id: generatedId,
         email: sanitizedEmail,
@@ -197,9 +199,9 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
           name: registerData.name.trim(),
           nim: trimmedNim,
           department: registerData.department,
-          avatarColor: '#2F80ED',
-          role: 'Mahasiswa',
-          verified: false,
+          avatarColor: selectedRole === 'Dosen' ? '#8B5CF6' : '#2F80ED',
+          role: selectedRole,
+          verified: selectedRole === 'Dosen',
           totalProjects: 0,
           totalEndorsements: 0,
           popularProject: 'Belum ada proyek',
@@ -221,6 +223,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
         email: '',
         password: '',
         confirmPassword: '',
+        role: 'Mahasiswa',
       })
     } finally {
       setRegisterLoading(false)
@@ -306,7 +309,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
               autoCorrect="off"
             />
             <div className="input-hint">
-              Gunakan email kampus: @kampus.ac.id atau masukkan NIM mahasiswa.
+              Gunakan email kampus: @kampus.ac.id. Mahasiswa memasukkan NIM, dosen dapat memakai NIP.
             </div>
 
             <label className="form-label" htmlFor="password">
@@ -357,7 +360,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
             />
 
             <label className="form-label" htmlFor="reg-nim">
-              NIM
+              NIM / NIP
             </label>
             <input
               id="reg-nim"
@@ -387,6 +390,21 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
               ))}
             </select>
 
+            <label className="form-label" htmlFor="reg-role">
+              Daftar Sebagai
+            </label>
+            <select
+              id="reg-role"
+              className="form-input"
+              value={registerData.role}
+              onChange={(event) =>
+                setRegisterData((prev) => ({ ...prev, role: event.target.value }))
+              }
+            >
+              <option value="Mahasiswa">Mahasiswa</option>
+              <option value="Dosen">Dosen</option>
+            </select>
+
             <label className="form-label" htmlFor="reg-email">
               Email Kampus
             </label>
@@ -401,7 +419,7 @@ const LoginPage = ({ onLogin, onGuest, isAuthenticated }) => {
               }
             />
             <div className="input-hint">
-              Gunakan email kampus: @kampus.ac.id atau masukkan NIM mahasiswa.
+              Gunakan email kampus: @kampus.ac.id. Mahasiswa memasukkan NIM, dosen dapat memakai NIP.
             </div>
 
             <label className="form-label" htmlFor="reg-password">

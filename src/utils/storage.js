@@ -25,10 +25,29 @@ export const loadProjects = (fallback = []) => {
   try {
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) {
-      return parsed.map((item) => ({
-        ...item,
-        tags: Array.isArray(item.tags) ? item.tags : [],
-      }))
+      return parsed.map((item) => {
+        const derivedStatus = (() => {
+          if (item.reviewStatus) return item.reviewStatus
+          if (typeof item.approvalStatus === 'string') {
+            if (item.approvalStatus.toLowerCase().includes('menunggu')) return 'pending'
+            if (item.approvalStatus.toLowerCase().includes('tolak')) return 'rejected'
+            if (item.approvalStatus.toLowerCase().includes('setuju')) return 'published'
+          }
+          return 'published'
+        })()
+        return {
+          ...item,
+          reviewStatus: derivedStatus,
+          reviewNotes:
+            typeof item.reviewNotes === 'string'
+              ? item.reviewNotes
+              : typeof item.reviewNote === 'string'
+                ? item.reviewNote
+                : '',
+          ownerId: item.ownerId ?? null,
+          tags: Array.isArray(item.tags) ? item.tags : [],
+        }
+      })
     }
   } catch {
     // ignore parse errors and fall back

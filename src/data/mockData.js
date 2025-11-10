@@ -19,7 +19,31 @@ export const defaultUsers = [
     password: '$2b$10$oJPtfNC5aUEkclCJEyrgs.Ut2DsGohJB.JGxNmzjghIR4UfSRNKHO',
     profile: currentUser,
   },
+  {
+    id: 'u-dosen',
+    email: 'dosen@kampus.ac.id',
+    nim: '1987654321',
+    password: '$2b$10$oJPtfNC5aUEkclCJEyrgs.Ut2DsGohJB.JGxNmzjghIR4UfSRNKHO',
+    profile: {
+      id: 'u-dosen',
+      name: 'Dr. Budi Santoso',
+      nim: '1987654321',
+      department: 'Teknik Informatika',
+      avatarColor: '#8B5CF6',
+      role: 'Dosen',
+      verified: true,
+      totalProjects: 0,
+      totalEndorsements: 0,
+      popularProject: 'Panel Penilai Proyek Kampus',
+    },
+  },
 ]
+
+export const REVIEW_STATUS = {
+  PENDING: 'pending',
+  PUBLISHED: 'published',
+  REJECTED: 'rejected',
+}
 
 export const projects = [
   {
@@ -30,9 +54,12 @@ export const projects = [
     department: 'Teknik Informatika',
     year: 2024,
     status: 'Selesai',
+    reviewStatus: REVIEW_STATUS.PUBLISHED,
+    reviewNotes: '',
     category: 'Teknik Informatika',
     tags: ['Teknik Informatika'],
     thumbnail: '#6C63FF',
+    ownerId: 'u-alya',
     owner: {
       name: 'Alya Putri',
       verified: true,
@@ -48,10 +75,13 @@ export const projects = [
       'Aplikasi web untuk membantu mahasiswa memetakan karier dengan rekomendasi skill dan portofolio.',
     department: 'Teknik Industri',
     year: 2023,
-    status: 'Progress',
+    status: 'Sedang Berjalan',
+    reviewStatus: REVIEW_STATUS.PUBLISHED,
+    reviewNotes: '',
     category: 'Teknik Industri',
     tags: ['Teknik Industri'],
     thumbnail: '#56CCF2',
+    ownerId: 'u-raka',
     owner: {
       name: 'Raka Pratama',
       verified: false,
@@ -68,9 +98,12 @@ export const projects = [
     department: 'Teknik Lingkungan',
     year: 2024,
     status: 'Selesai',
+    reviewStatus: REVIEW_STATUS.PUBLISHED,
+    reviewNotes: '',
     category: 'Teknik Lingkungan',
     tags: ['Teknik Lingkungan'],
     thumbnail: '#F2994A',
+    ownerId: 'u-dina',
     owner: {
       name: 'Dina Kartika',
       verified: true,
@@ -87,9 +120,12 @@ export const projects = [
     department: 'Teknik Sipil',
     year: 2022,
     status: 'Selesai',
+    reviewStatus: REVIEW_STATUS.PUBLISHED,
+    reviewNotes: '',
     category: 'Teknik Sipil',
     tags: ['Teknik Sipil'],
     thumbnail: '#9B51E0',
+    ownerId: 'u-bagas',
     owner: {
       name: 'Bagas Wicaksono',
       verified: false,
@@ -97,42 +133,6 @@ export const projects = [
     },
     endorsements: 11,
     demoLink: 'https://example.com/CampusEventHub',
-  },
-  {
-    id: 'p-05',
-    title: 'FinTrack Micro Finance',
-    summary:
-      'Sistem pencatatan keuangan UKM binaan kampus dengan visualisasi cashflow dan reminder tagihan.',
-    department: 'Teknologi Hasil Pertanian',
-    year: 2023,
-    status: 'Progress',
-    category: 'Fintech',
-    tags: ['Fintech', 'Visualization'],
-    thumbnail: '#27AE60',
-    owner: {
-      name: 'Siti Rahma',
-      verified: true,
-      role: 'Mahasiswa',
-    },
-    endorsements: 3,
-  },
-  {
-    id: 'p-06',
-    title: 'VR Campus Tour',
-    summary:
-      'Pengalaman VR interaktif untuk tur kampus yang informatif bagi calon mahasiswa baru.',
-    department: 'Arsitektur',
-    year: 2022,
-    status: 'Selesai',
-    category: 'XR',
-    tags: ['VR', '3D', 'Experience'],
-    thumbnail: '#2D9CDB',
-    owner: {
-      name: 'Alya Putri',
-      verified: true,
-      role: 'Mahasiswa',
-    },
-    endorsements: 4,
   },
 ]
 
@@ -144,15 +144,11 @@ export const categories = [
   'Teknik Lingkungan',
   'Teknologi Hasil Pertanian',
 ]
-export const departments = [
-  'Teknik Informatika',
-  'Arsitektur',
-  'Teknik Sipil',
-  'Teknik Industri',
-  'Teknik Lingkungan',
-  'Teknologi Hasil Pertanian',
-]
+
+export const departments = [...categories]
+
 export const years = [2024, 2023, 2022, 2021]
+
 export const tags = [...departments]
 
 export const notifications = [
@@ -178,4 +174,4 @@ export const notifications = [
     read: true,
   },
 ]
-
+ 

@@ -761,6 +761,26 @@ textarea {
   color: var(--color-accent);
 }
 
+.meta-pill.verification {
+  background: rgba(47, 128, 237, 0.1);
+  color: var(--color-primary);
+}
+
+.meta-pill.verification.approved {
+  background: rgba(39, 174, 96, 0.18);
+  color: #1b8c52;
+}
+
+.meta-pill.verification.pending {
+  background: rgba(242, 201, 76, 0.22);
+  color: #b17b17;
+}
+
+.meta-pill.verification.rejected {
+  background: rgba(231, 76, 60, 0.18);
+  color: #b3382b;
+}
+
 .project-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1061,6 +1081,21 @@ textarea {
 
 .banner-info strong {
   color: var(--color-primary);
+}
+
+.banner-warning {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: rgba(231, 76, 60, 0.12);
+  color: #b3382b;
+  border-radius: var(--radius-card);
+  padding: 1rem 1.25rem;
+  line-height: 1.5;
+}
+
+.banner-warning strong {
+  color: #962920;
 }
 
 .preview-panel {

@@ -134,7 +134,10 @@ function App() {
           path="/projects/:projectId"
           element={
             <ProtectedRoute isAuthenticated={authContext.isAuthenticated}>
-              <ProjectDetailPage isGuest={authContext.isGuest} />
+              <ProjectDetailPage
+                isGuest={authContext.isGuest}
+                profile={authContext.profile ?? guestProfile}
+              />
             </ProtectedRoute>
           }
         />

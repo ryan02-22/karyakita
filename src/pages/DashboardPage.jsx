@@ -13,6 +13,7 @@ import {
   departments,
   notifications as defaultNotifications,
   projects as defaultProjects,
+  REVIEW_STATUS,
   years,
 } from '../data/mockData.js'
 import { loadProjects, PROJECTS_UPDATED_EVENT } from '../utils/storage.js'
@@ -223,6 +224,19 @@ const ProjectCard = ({ project }) => {
   const ownerRole = project.owner?.role ?? 'Mahasiswa'
   const ownerVerified = Boolean(project.owner?.verified)
   const tags = Array.isArray(project.tags) ? project.tags : []
+  const reviewStatus = project.reviewStatus ?? REVIEW_STATUS.PUBLISHED
+  const statusLabel =
+    reviewStatus === REVIEW_STATUS.PUBLISHED
+      ? 'Dipublikasikan'
+      : reviewStatus === REVIEW_STATUS.REJECTED
+        ? 'Perlu Revisi'
+        : 'Menunggu Review'
+  const statusClass =
+    reviewStatus === REVIEW_STATUS.PUBLISHED
+      ? 'approved'
+      : reviewStatus === REVIEW_STATUS.REJECTED
+        ? 'rejected'
+        : 'pending'
 
   return (
     <article className="project-card">
@@ -242,6 +256,7 @@ const ProjectCard = ({ project }) => {
         <div className="project-meta">
           <span className="meta-pill">{project.department}</span>
           <span className="meta-pill status">{project.status}</span>
+          <span className={`meta-pill verification ${statusClass}`}>{statusLabel}</span>
         </div>
         <div className="project-tags">
           {tags.length > 0 ? (
@@ -266,11 +281,11 @@ const ProjectCard = ({ project }) => {
   )
 }
 
-const ProjectGrid = ({ items }) => {
+const ProjectGrid = ({ items, emptyMessage }) => {
   if (items.length === 0) {
     return (
       <div className="empty-state">
-        <p>Belum ada proyek. Klik ‘+ Tambah Proyek’ untuk mempublikasikan karyamu.</p>
+        <p>{emptyMessage}</p>
       </div>
     )
   }
@@ -279,6 +294,50 @@ const ProjectGrid = ({ items }) => {
       {items.map((project) => (
         <ProjectCard project={project} key={project.id} />
       ))}
+    </section>
+  )
+}
+
+const PendingReviewList = ({ items }) => {
+  if (items.length === 0) return null
+  return (
+    <section className="detail-card">
+      <h3>Menunggu Review Dosen</h3>
+      <ul
+        style={{
+          listStyle: 'none',
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.85rem',
+        }}
+      >
+        {items.map((project) => (
+          <li
+            key={project.id}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '1rem',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-text)' }}>
+                {project.title}
+              </p>
+              <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>
+                {project.department} • {project.owner?.name ?? 'Mahasiswa'} •{' '}
+                {project.year ?? 'Tahun ?'}
+              </span>
+            </div>
+            <Link to={`/projects/${project.id}`} className="button button-secondary">
+              Tinjau
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
@@ -328,8 +387,20 @@ const DashboardPage = ({ onLogout, profile, isGuest }) => {
     navigate('/projects/new')
   }
 
+  const viewerRole = profile?.role ?? (isGuest ? 'Pengunjung' : 'Mahasiswa')
+  const isLecturer = viewerRole === 'Dosen'
+
   const filteredProjects = useMemo(() => {
     return projectItems.filter((project) => {
+      const status = project.reviewStatus ?? REVIEW_STATUS.PUBLISHED
+      const isOwner = profile?.id && project.ownerId === profile.id
+      const isPublished = status === REVIEW_STATUS.PUBLISHED
+      if (isGuest && !isPublished) {
+        return false
+      }
+      if (!isGuest && !isLecturer && !isOwner && !isPublished) {
+        return false
+      }
       const ownerName = project.owner?.name ?? ''
       const matchesSearch =
         searchTerm.trim().length === 0 ||
@@ -343,7 +414,46 @@ const DashboardPage = ({ onLogout, profile, isGuest }) => {
 
       return matchesSearch && matchesDepartment && matchesYear && matchesCategory
     })
-  }, [filters.category, filters.department, filters.year, projectItems, searchTerm])
+  }, [
+    filters.category,
+    filters.department,
+    filters.year,
+    isGuest,
+    isLecturer,
+    profile?.id,
+    projectItems,
+    searchTerm,
+  ])
+
+  const pendingForLecturer = useMemo(
+    () =>
+      projectItems.filter(
+        (project) => (project.reviewStatus ?? REVIEW_STATUS.PUBLISHED) === REVIEW_STATUS.PENDING,
+      ),
+    [projectItems],
+  )
+  const pendingForOwner = useMemo(() => {
+    if (!profile?.id) return []
+    return projectItems.filter(
+      (project) =>
+        project.ownerId === profile.id &&
+        (project.reviewStatus ?? REVIEW_STATUS.PUBLISHED) === REVIEW_STATUS.PENDING,
+    )
+  }, [profile?.id, projectItems])
+  const rejectedForOwner = useMemo(() => {
+    if (!profile?.id) return []
+    return projectItems.filter(
+      (project) =>
+        project.ownerId === profile.id &&
+        (project.reviewStatus ?? REVIEW_STATUS.PUBLISHED) === REVIEW_STATUS.REJECTED,
+    )
+  }, [profile?.id, projectItems])
+
+  const emptyMessage = isGuest
+    ? 'Belum ada proyek publik untuk filter ini. Coba ubah kata kunci atau filter.'
+    : isLecturer
+      ? 'Tidak ada proyek yang cocok dengan filter ini. Tinjau daftar menunggu review atau sesuaikan filter.'
+      : 'Belum ada proyek sesuai filter. Tambahkan karya baru atau ubah filter untuk melihat proyek lain.'
 
   return (
     <div className="dashboard-layout">
@@ -391,8 +501,30 @@ const DashboardPage = ({ onLogout, profile, isGuest }) => {
               </p>
             </div>
           ) : null}
+          {isLecturer && pendingForLecturer.length > 0 ? (
+            <div className="banner-info">
+              <strong>{pendingForLecturer.length} proyek menunggu verifikasi dosen.</strong>
+              <p>Tinjau detail proyek, beri komentar, lalu setujui atau tolak dengan catatan.</p>
+            </div>
+          ) : null}
+          {!isLecturer && pendingForOwner.length > 0 ? (
+            <div className="banner-info">
+              <strong>Proyek Anda sedang ditinjau dosen.</strong>
+              <p>
+                Proyek akan tampil ke publik setelah disetujui. Ikuti catatan dosen jika diminta
+                revisi.
+              </p>
+            </div>
+          ) : null}
+          {!isLecturer && rejectedForOwner.length > 0 ? (
+            <div className="banner-warning">
+              <strong>{rejectedForOwner.length} proyek butuh revisi.</strong>
+              <p>Buka detail proyek untuk melihat catatan dosen lalu perbarui dan ajukan ulang.</p>
+            </div>
+          ) : null}
           <StatsStrip profile={profile} isGuest={isGuest} />
-          <ProjectGrid items={filteredProjects} />
+          {isLecturer ? <PendingReviewList items={pendingForLecturer} /> : null}
+          <ProjectGrid items={filteredProjects} emptyMessage={emptyMessage} />
         </main>
       </div>
     </div>

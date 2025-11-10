@@ -14,6 +14,7 @@ import {
   departments,
   tags,
   projects as defaultProjects,
+  REVIEW_STATUS,
 } from '../data/mockData.js'
 import {
   loadDraftProject,
@@ -43,6 +44,8 @@ const DRAFT_INFO =
 
 const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
   const navigate = useNavigate()
+  const initialReviewStatus =
+    profile?.role === 'Dosen' ? REVIEW_STATUS.PUBLISHED : REVIEW_STATUS.PENDING
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -55,6 +58,7 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
     demoLink: '',
     imageFiles: [],
     documentFile: null,
+    reviewStatus: initialReviewStatus,
   })
   const [submissionPreview, setSubmissionPreview] = useState(null)
   const [errors, setErrors] = useState({
@@ -70,10 +74,14 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
       setFormData((prev) => ({
         ...prev,
         ...draft,
+        reviewStatus: draft.reviewStatus ?? initialReviewStatus,
       }))
-      showStatus(`${DRAFT_INFO} Anda dapat melanjutkan dari data sebelumnya.`, 'info')
+      setStatusFeedback({
+        message: `${DRAFT_INFO} Anda dapat melanjutkan dari data sebelumnya.`,
+        type: 'info',
+      })
     }
-  }, [])
+  }, [initialReviewStatus])
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -169,6 +177,8 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
     const trimmedTitle = formData.title.trim()
     const trimmedDescription = formData.description.trim()
     const normalizedYear = formData.year ? Number.parseInt(formData.year, 10) : null
+    const reviewStatus =
+      profile?.role === 'Dosen' ? REVIEW_STATUS.PUBLISHED : REVIEW_STATUS.PENDING
 
     const submissionPayload = {
       title: trimmedTitle,
@@ -181,6 +191,7 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
       tags: formData.tags,
       thumbnail: '#2F80ED',
       demoLink: formData.demoLink || '',
+      reviewStatus,
     }
 
     setSubmissionPreview({
@@ -202,6 +213,7 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
         category: formData.category,
         department: formData.department,
         status: formData.status,
+        reviewStatus,
         completionDate: formData.completionDate,
         year: formData.year,
         demoLink: formData.demoLink,
@@ -230,6 +242,9 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
     try {
       setSubmitting(true)
       const existingProjects = loadProjects(defaultProjects)
+      const now = new Date().toISOString()
+      const isDosen = profile?.role === 'Dosen'
+      const derivedReviewStatus = isDosen ? REVIEW_STATUS.PUBLISHED : REVIEW_STATUS.PENDING
       const newProject = {
         id: `p-${Date.now()}`,
         title: trimmedTitle,
@@ -243,15 +258,27 @@ const ProjectFormPage = ({ mode = 'create', isGuest = false, profile }) => {
         thumbnail: '#2F80ED',
         endorsements: 0,
         demoLink: formData.demoLink || '',
+        reviewStatus: derivedReviewStatus,
+        reviewNotes: '',
+        ownerId: profile?.id ?? null,
         owner: {
           name: profile?.name ?? 'Mahasiswa',
           verified: !!profile?.verified,
           role: profile?.role ?? 'Mahasiswa',
         },
+        createdAt: now,
+        publishedAt: isDosen ? now : null,
       }
       saveProjects([...existingProjects, newProject])
       clearDraftProject()
-      showStatus('Proyek berhasil dipublikasikan! Mengarahkan ke Dashboard...', 'success')
+      if (profile?.role === 'Dosen') {
+        showStatus('Proyek berhasil dipublikasikan! Mengarahkan ke Dashboard...', 'success')
+      } else {
+        showStatus(
+          'Proyek berhasil dikirim ke dosen untuk verifikasi. Anda akan melihatnya setelah disetujui.',
+          'success',
+        )
+      }
       setSubmissionPreview((prev) => ({
         ...prev,
         submittedProject: newProject,
