@@ -16,7 +16,12 @@ import {
   REVIEW_STATUS,
   years,
 } from '../data/mockData.js'
-import { loadProjects, PROJECTS_UPDATED_EVENT } from '../utils/storage.js'
+import {
+  loadProjects,
+  PROJECTS_UPDATED_EVENT,
+  loadNotifications,
+  saveNotifications,
+} from '../utils/storage.js'
 
 const Topbar = ({
   searchTerm,
@@ -27,8 +32,10 @@ const Topbar = ({
   notifications,
   isNotificationsOpen,
   onToggleNotifications,
+  onNotificationClick,
 }) => {
   const hasUnread = notifications.some((item) => !item.read)
+  const unreadCount = notifications.filter((item) => !item.read).length
 
   return (
   <header className="topbar">
@@ -59,13 +66,15 @@ const Topbar = ({
           aria-expanded={isNotificationsOpen}
         >
           {hasUnread ? <PiBellSimpleRinging size={22} /> : <PiBellSimple size={22} />}
-          <span className="badge">{notifications.length}</span>
+          {unreadCount > 0 ? <span className="badge">{unreadCount}</span> : null}
         </button>
         {isNotificationsOpen ? (
           <div className="notification-dropdown" role="dialog" aria-label="Daftar notifikasi">
             <div className="notification-header">
               <h3>Notifikasi</h3>
-              <span>{notifications.length} pesan</span>
+              <span>
+                {unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua sudah dibaca'}
+              </span>
             </div>
             <ul className="notification-list">
               {notifications.length > 0 ? (
@@ -73,6 +82,23 @@ const Topbar = ({
                   <li
                     key={item.id}
                     className={`notification-item ${item.read ? 'read' : 'unread'}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onNotificationClick?.(item.id)
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--color-hover, #f5f5f5)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = item.read 
+                        ? 'rgba(227, 242, 253, 0.4)' 
+                        : 'rgba(47, 128, 237, 0.12)'
+                    }}
                   >
                     <p className="notification-title">{item.title}</p>
                     <p className="notification-message">{item.message}</p>
@@ -351,7 +377,9 @@ const DashboardPage = ({ onLogout, profile, isGuest }) => {
     category: '',
   })
   const [projectItems, setProjectItems] = useState(() => loadProjects(defaultProjects))
-  const [notificationList, setNotificationList] = useState(defaultNotifications)
+  const [notificationList, setNotificationList] = useState(() =>
+    loadNotifications(defaultNotifications),
+  )
   const [notificationOpen, setNotificationOpen] = useState(false)
 
   useEffect(() => {
@@ -364,19 +392,23 @@ const DashboardPage = ({ onLogout, profile, isGuest }) => {
     return undefined
   }, [])
 
+  useEffect(() => {
+    // Simpan notifikasi ke localStorage setiap kali berubah
+    saveNotifications(notificationList)
+  }, [notificationList])
+
   const handleToggleNotifications = () => {
-    setNotificationOpen((prevOpen) => {
-      const next = !prevOpen
-      if (!prevOpen) {
-        setNotificationList((prevList) =>
-          prevList.map((item) => ({
-            ...item,
-            read: true,
-          })),
-        )
-      }
-      return next
-    })
+    setNotificationOpen((prevOpen) => !prevOpen)
+  }
+
+  const handleNotificationClick = (notificationId) => {
+    setNotificationList((prevList) =>
+      prevList.map((item) =>
+        item.id === notificationId ? { ...item, read: true } : item,
+      ),
+    )
+    // Close dropdown after clicking notification
+    setNotificationOpen(false)
   }
 
   const handleAddProject = () => {
@@ -466,6 +498,7 @@ const DashboardPage = ({ onLogout, profile, isGuest }) => {
         notifications={notificationList}
         isNotificationsOpen={notificationOpen}
         onToggleNotifications={handleToggleNotifications}
+        onNotificationClick={handleNotificationClick}
       />
       {notificationOpen ? (
         <div

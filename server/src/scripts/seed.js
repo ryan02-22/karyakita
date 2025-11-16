@@ -5,20 +5,50 @@ const { normalizeEmail, normalizeNim } = require('../utils/validators')
 require('./migrate')
 
 const seedUsers = () => {
-  const defaultUser = {
-    id: 'u-alya',
-    name: 'Alya Putri',
-    nim: '231234567',
-    department: 'Teknik Informatika',
-    email: 'alya@kampus.ac.id',
-    role: 'Mahasiswa',
-    verified: 1,
-    avatarColor: '#2F80ED',
-    totalProjects: 6,
-    totalEndorsements: 18,
-    popularProject: 'Smart Campus IoT Dashboard',
-    passwordHash: bcrypt.hashSync('KaryaKita!2025', 10),
-  }
+  const defaultUsers = [
+    {
+      id: 'u-alya',
+      name: 'Alya Putri',
+      nim: '231234567',
+      department: 'Teknik Informatika',
+      email: 'alya@kampus.ac.id',
+      role: 'Mahasiswa',
+      verified: 1,
+      avatarColor: '#2F80ED',
+      totalProjects: 6,
+      totalEndorsements: 18,
+      popularProject: 'Smart Campus IoT Dashboard',
+      passwordHash: bcrypt.hashSync('KaryaKita!2025', 10),
+    },
+    {
+      id: 'u-dosen',
+      name: 'Dosen Pengajar',
+      nim: '1987654321',
+      department: 'Teknik Informatika',
+      email: 'dosen@kampus.ac.id',
+      role: 'Dosen',
+      verified: 1,
+      avatarColor: '#27AE60',
+      totalProjects: 0,
+      totalEndorsements: 0,
+      popularProject: null,
+      passwordHash: bcrypt.hashSync('KaryaKita!2025', 10),
+    },
+    {
+      id: 'u-admin',
+      name: 'Administrator',
+      nim: '000000000',
+      department: 'Administrasi',
+      email: 'admin@kampus.ac.id',
+      role: 'Admin',
+      verified: 1,
+      avatarColor: '#E74C3C',
+      totalProjects: 0,
+      totalEndorsements: 0,
+      popularProject: null,
+      passwordHash: bcrypt.hashSync('KaryaKita!2025', 10),
+    },
+  ]
 
   const stmt = db.prepare(`
     INSERT OR IGNORE INTO users (
@@ -38,10 +68,12 @@ const seedUsers = () => {
     ) VALUES (@id, @email, @nim, @nimNormalized, @passwordHash, @name, @department, @role, @verified, @avatarColor, @totalProjects, @totalEndorsements, @popularProject)
   `)
 
-  stmt.run({
-    ...defaultUser,
-    email: normalizeEmail(defaultUser.email),
-    nimNormalized: normalizeNim(defaultUser.nim),
+  defaultUsers.forEach((user) => {
+    stmt.run({
+      ...user,
+      email: normalizeEmail(user.email),
+      nimNormalized: normalizeNim(user.nim),
+    })
   })
 }
 
@@ -54,12 +86,12 @@ const seedProjects = () => {
       summary:
         'Platform monitoring lingkungan kampus dengan sensor IoT real-time dan analitik interaktif.',
       department: 'Teknik Informatika',
-    category: 'Teknik Informatika',
-    status: 'Selesai',
-    completionDate: '2024-05-30',
-    year: 2024,
-    thumbnail: '#6C63FF',
-    endorsements: 9,
+      category: 'Teknik Informatika',
+      status: 'Selesai',
+      completionDate: '2024-05-30',
+      year: 2024,
+      thumbnail: '#6C63FF',
+      endorsements: 9,
       tags: ['Teknik Informatika'],
       demoLink: 'https://example.com/SmartCampusIoTDashboard',
     },

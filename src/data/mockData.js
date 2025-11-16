@@ -1,3 +1,15 @@
+// Daftar email resmi yang diizinkan untuk mendaftar
+// Email resmi adalah email kampus yang sudah dibuat/didaftarkan
+// Hanya email yang terdaftar di daftar ini yang dapat mendaftar ke sistem
+export const officialEmails = [
+  'alya@kampus.ac.id',
+  'dosen@kampus.ac.id',
+  'admin@kampus.ac.id',
+  // Tambahkan email kampus resmi lainnya di sini
+  // Pastikan email tersebut menggunakan domain @kampus.ac.id
+  // Contoh: 'mahasiswa1@kampus.ac.id', 'dosen1@kampus.ac.id', 'mahasiswa2@kampus.ac.id', dll
+]
+
 export const currentUser = {
   id: 'u-alya',
   name: 'Alya Putri',
@@ -16,14 +28,14 @@ export const defaultUsers = [
     id: 'u-alya',
     email: 'alya@kampus.ac.id',
     nim: currentUser.nim,
-    password: '$2b$10$oJPtfNC5aUEkclCJEyrgs.Ut2DsGohJB.JGxNmzjghIR4UfSRNKHO',
+    password: '$2b$10$CAk8dH9nd0OprKqME5vTV.VlCDZZbWxMUtQ8qP3Ma1xjC5Zu1WO4W',
     profile: currentUser,
   },
   {
     id: 'u-dosen',
     email: 'dosen@kampus.ac.id',
     nim: '1987654321',
-    password: '$2b$10$oJPtfNC5aUEkclCJEyrgs.Ut2DsGohJB.JGxNmzjghIR4UfSRNKHO',
+    password: '$2b$10$CAk8dH9nd0OprKqME5vTV.VlCDZZbWxMUtQ8qP3Ma1xjC5Zu1WO4W',
     profile: {
       id: 'u-dosen',
       name: 'Dr. Budi Santoso',
@@ -35,6 +47,24 @@ export const defaultUsers = [
       totalProjects: 0,
       totalEndorsements: 0,
       popularProject: 'Panel Penilai Proyek Kampus',
+    },
+  },
+  {
+    id: 'u-admin',
+    email: 'admin@kampus.ac.id',
+    nim: '000000000',
+    password: '$2b$10$CAk8dH9nd0OprKqME5vTV.VlCDZZbWxMUtQ8qP3Ma1xjC5Zu1WO4W',
+    profile: {
+      id: 'u-admin',
+      name: 'Admin KaryaKita',
+      nim: '000000000',
+      department: 'Administrasi',
+      avatarColor: '#DC3545',
+      role: 'Admin',
+      verified: true,
+      totalProjects: 0,
+      totalEndorsements: 0,
+      popularProject: 'Panel Admin',
     },
   },
 ]
@@ -67,6 +97,7 @@ export const projects = [
     },
     endorsements: 9,
     demoLink: 'https://example.com/SmartCampusIoTDashboard',
+    linkType: 'demo',
   },
   {
     id: 'p-02',
@@ -89,6 +120,7 @@ export const projects = [
     },
     endorsements: 5,
     demoLink: 'https://example.com/EduPathCareerPlanner',
+    linkType: 'demo',
   },
   {
     id: 'p-03',
@@ -111,6 +143,7 @@ export const projects = [
     },
     endorsements: 7,
     demoLink: 'https://example.com/FoodWasteDetector',
+    linkType: 'repository',
   },
   {
     id: 'p-04',
@@ -133,10 +166,141 @@ export const projects = [
     },
     endorsements: 11,
     demoLink: 'https://example.com/CampusEventHub',
+    linkType: 'demo',
   },
 ]
 
+// Mapping kategori berdasarkan jurusan
+export const categoriesByDepartment = {
+  'Teknik Informatika': [
+    'Web Development',
+    'Mobile Development',
+    'Data Science & Analytics',
+    'Machine Learning & AI',
+    'Cybersecurity',
+    'Cloud Computing',
+    'Database Management',
+    'Software Engineering',
+    'UI/UX Design',
+    'Game Development',
+    'IoT & Embedded Systems',
+    'Network & Infrastructure',
+  ],
+  'Arsitektur': [
+    'Desain Arsitektur',
+    'Perencanaan Kota',
+    'Arsitektur Interior',
+    'Landscape Architecture',
+    'Sustainable Design',
+    'Building Information Modeling (BIM)',
+    'Urban Planning',
+    'Heritage Conservation',
+    '3D Visualization',
+  ],
+  'Teknik Sipil': [
+    'Struktur Bangunan',
+    'Jalan & Jembatan',
+    'Manajemen Konstruksi',
+    'Geoteknik',
+    'Hidrologi & Hidraulika',
+    'Transportasi',
+    'Perencanaan Wilayah',
+    'Material Konstruksi',
+    'Survey & Pemetaan',
+  ],
+  'Teknik Industri': [
+    'Sistem Produksi',
+    'Manajemen Kualitas',
+    'Supply Chain Management',
+    'Ergonomi & Keselamatan',
+    'Optimasi Proses',
+    'Lean Manufacturing',
+    'Industrial Automation',
+    'Project Management',
+    'Logistics & Distribution',
+  ],
+  'Teknik Lingkungan': [
+    'Pengelolaan Air Limbah',
+    'Pengelolaan Sampah',
+    'Kualitas Air & Udara',
+    'Energi Terbarukan',
+    'Environmental Impact Assessment',
+    'Konservasi Lingkungan',
+    'Climate Change Mitigation',
+    'Waste Management',
+  ],
+  'Teknologi Hasil Pertanian': [
+    'Teknologi Pangan',
+    'Pengolahan Hasil Pertanian',
+    'Agroteknologi',
+    'Food Safety',
+    'Biotechnology',
+    'Post-Harvest Technology',
+    'Agricultural Engineering',
+    'Sustainable Agriculture',
+  ],
+}
+
+// Semua kategori untuk fallback
 export const categories = [
+  'Web Development',
+  'Mobile Development',
+  'Data Science & Analytics',
+  'Machine Learning & AI',
+  'Cybersecurity',
+  'Cloud Computing',
+  'Database Management',
+  'Software Engineering',
+  'UI/UX Design',
+  'Game Development',
+  'IoT & Embedded Systems',
+  'Network & Infrastructure',
+  'Desain Arsitektur',
+  'Perencanaan Kota',
+  'Arsitektur Interior',
+  'Landscape Architecture',
+  'Sustainable Design',
+  'Building Information Modeling (BIM)',
+  'Urban Planning',
+  'Heritage Conservation',
+  '3D Visualization',
+  'Struktur Bangunan',
+  'Jalan & Jembatan',
+  'Manajemen Konstruksi',
+  'Geoteknik',
+  'Hidrologi & Hidraulika',
+  'Transportasi',
+  'Perencanaan Wilayah',
+  'Material Konstruksi',
+  'Survey & Pemetaan',
+  'Sistem Produksi',
+  'Manajemen Kualitas',
+  'Supply Chain Management',
+  'Ergonomi & Keselamatan',
+  'Optimasi Proses',
+  'Lean Manufacturing',
+  'Industrial Automation',
+  'Project Management',
+  'Logistics & Distribution',
+  'Pengelolaan Air Limbah',
+  'Pengelolaan Sampah',
+  'Kualitas Air & Udara',
+  'Energi Terbarukan',
+  'Environmental Impact Assessment',
+  'Konservasi Lingkungan',
+  'Climate Change Mitigation',
+  'Waste Management',
+  'Teknologi Pangan',
+  'Pengolahan Hasil Pertanian',
+  'Agroteknologi',
+  'Food Safety',
+  'Biotechnology',
+  'Post-Harvest Technology',
+  'Agricultural Engineering',
+  'Sustainable Agriculture',
+]
+
+export const departments = [
   'Teknik Informatika',
   'Arsitektur',
   'Teknik Sipil',
@@ -144,8 +308,6 @@ export const categories = [
   'Teknik Lingkungan',
   'Teknologi Hasil Pertanian',
 ]
-
-export const departments = [...categories]
 
 export const years = [2024, 2023, 2022, 2021]
 

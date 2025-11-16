@@ -517,6 +517,12 @@ textarea {
   background: rgba(47, 128, 237, 0.12);
 }
 
+.notification-item.read {
+  border: 1px solid transparent;
+  background: rgba(227, 242, 253, 0.4);
+  opacity: 0.7;
+}
+
 .notification-title {
   margin: 0;
   font-weight: 600;
